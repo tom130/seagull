@@ -53,7 +53,7 @@ C_CallControl::C_CallControl(C_GeneratorConfig   *P_config,
   m_accept_new_call = true ;
 
   m_call_created = 0 ;
-  m_pause = false ;
+  m_pause = 0 ;
 
   // m_type = E_TRAFFIC_UNKNOWN ;
   m_type = E_TRAFFIC_SERVER ;
@@ -118,7 +118,7 @@ void C_CallControl::log_search_session_from_scen(int P_channel_id) {
 
 void C_CallControlClient::log_search_session_from_scen(int P_channel_id) {
   GEN_LOG_EVENT (LOG_LEVEL_TRAFFIC_ERR, 
-                 "Value of session-id defiened in scenario is incorrect or not found for channel["
+                 "Value of session-id defined in scenario is incorrect or not found for channel["
                  << P_channel_id
                  << "]");
   
@@ -145,7 +145,7 @@ C_CallControl::~C_CallControl() {
   m_config = NULL ;
   m_max_send_loop = 0 ;
   m_max_receive_loop = 0 ;
-  m_pause = false ;
+  m_pause = 0 ;
 
   FREE_TABLE(m_wait_values);
   m_nb_wait_values = 0 ;
@@ -392,7 +392,7 @@ void C_CallControl::messageReceivedControl () {
       // search for scenario
       GEN_DEBUG(1, "C_CallControl::messageReceivedControl() L_pCallContext == NULL");
 
-      if (m_accept_new_call == true) {
+      if (m_accept_new_call == true || m_accept_new_call == false) { //DWR fix
 	GEN_DEBUG(1, "C_CallControl::messageReceivedControl()  m_accept_new_call == true");
 	L_scenario = m_scenario_control -> find_scenario (&L_rcvCtxt);
 	if (L_scenario != NULL) { 
@@ -415,7 +415,8 @@ void C_CallControl::messageReceivedControl () {
 	    // no more call context available
 	    // => just discard the message
 	    // => call refused
-	    GEN_ERROR(1, "No more context available");
+	    //
+		  GEN_ERROR(1, "No more context available");
 	    L_pCallContext = NULL ;
 	    GEN_LOG_EVENT_CONDITIONAL (LOG_LEVEL_TRAFFIC_ERR, 
                                        L_value_id != NULL,
@@ -450,15 +451,20 @@ void C_CallControl::messageReceivedControl () {
 
 	  m_stat -> executeStatAction (C_GeneratorStats::E_FAILED_UNEXPECTED_MSG);
 	}
-      } else {
-	// new call refused
-	// discard message
-	GEN_LOG_EVENT_CONDITIONAL (LOG_LEVEL_TRAFFIC_ERR, 
-		   L_value_id != NULL,
-		   "Refused (new) call with session-id ["
-		   << *L_value_id << "]");
-	m_stat -> executeStatAction (C_GeneratorStats::E_CALL_REFUSED) ;
       }
+      //*****************DWR fix***************
+      //*****************DWR fix***************
+//      else {
+//	// new call refused
+//	// discard message
+//	GEN_LOG_EVENT_CONDITIONAL (LOG_LEVEL_TRAFFIC_ERR,
+//		   L_value_id != NULL,
+//		   "Refused (new) call with session-id ["
+//		   << *L_value_id << "]");
+//	m_stat -> executeStatAction (C_GeneratorStats::E_CALL_REFUSED) ;
+//      }
+      //*****************DWR fix***************
+      //*****************DWR fix***************
     } else {
       // scenario in execution for this call
       GEN_DEBUG(1, "C_CallControl::messageReceivedControl() "<<
@@ -926,8 +932,6 @@ T_GeneratorError C_CallControl::InitProcedure() {
   int                       L_memory_used, L_channel_used, L_nb_retrans ;
   C_CallContext            *L_pCallContext                              ;
   unsigned long             L_config_value                              ;
-  T_pC_Scenario             L_scenario                                  ;
-  T_TrafficType             L_type                                      ;
   T_pWaitValuesSet          L_wait_values                               ;
   T_pRetransDelayValuesSet  L_retrans_delay_values                      ;
 
@@ -1044,9 +1048,6 @@ T_GeneratorError C_CallControl::InitProcedure() {
     m_call_ctxt_mlist->setElementPayload((long)L_i, L_pCallContext);
   }
 
-  // test if an init scenario is defined
-  L_scenario = m_scenario_control->init_scenario_defined(&L_type) ;
-
   if (m_retrans_enabled) {
     L_retrans_delay_values = m_scenario_control->get_retrans_delay_values() ;
     m_nb_retrans_delay_values = L_retrans_delay_values -> size() ;
@@ -1093,7 +1094,6 @@ T_GeneratorError C_CallControl::EndProcedure() {
   
   int                       L_i                ;
   int                       L_nbMessageSuspend ;
-  int                       L_event_id         ;
   T_pCallContext            L_pCallContext     ;
 
 
@@ -1110,7 +1110,6 @@ T_GeneratorError C_CallControl::EndProcedure() {
      L_pCallContext 
        = m_call_ctxt_table[m_call_ctxt_mlist->getFirst(E_CTXT_SUSPEND)];
      // treat the socket
-     L_event_id = L_pCallContext->m_suspend_id ;
      L_pCallContext->clean_suspended() ;
      m_channel_control->close_local_channel(L_pCallContext->m_channel_id,
                                             L_pCallContext->m_channel_table);
@@ -1520,14 +1519,14 @@ T_GeneratorError C_CallControlClient::StoppingProcedure() {
 void C_CallControl::pause_traffic() {
   GEN_DEBUG (1, "C_CallControl::pause_traffic() start");
   switch(m_pause) {
-  case true:
+  case 1:
     m_accept_new_call = true ;
-    m_pause = false ;
+    m_pause = 0 ;
     m_stat->info_msg((char*)"Incomming traffic (restarted)");
     break ;
-  case false:
+  case 0:
     m_accept_new_call = false ;
-    m_pause = true ;
+    m_pause = 1 ;
     m_stat->info_msg((char*)"Incomming traffic (paused)");
     break ;
   }
@@ -1543,12 +1542,12 @@ void C_CallControl::burst_traffic() {
 void C_CallControlClient::pause_traffic() {
   GEN_DEBUG (1, "C_CallControl::pause_traffic() start");
   switch(m_pause) {
-  case true :
-    m_pause = false ;
+  case 1 :
+    m_pause = 0 ;
     restart_traffic();
     break ;
-  case false :
-    m_pause = true ;
+  case 0 :
+    m_pause = 1 ;
     m_outgoing_traffic = false ;
     m_stat->info_msg((char*)"Outgoing traffic (paused)");
     break ;
@@ -1568,8 +1567,8 @@ void C_CallControlClient::restart_traffic() {
 void C_CallControlClient::burst_traffic() {
   GEN_DEBUG (1, "C_CallControl::burst_traffic() start");
   switch(m_pause) {
-  case true :
-    m_pause = false ;
+  case 1 :
+    m_pause = 0 ;
     m_outgoing_traffic = true ;
     m_stat->info_msg((char*)"Outgoing traffic (bursted)");
     break ;
@@ -1823,7 +1822,7 @@ T_pCallContext  C_CallControl::getSessionFromScen(T_ReceiveMsgContext P_rcvCtxt,
   L_retrieveIds = m_scenario_control->get_id_table_by_channel(P_rcvCtxt.m_channel);
   if (L_retrieveIds != NULL) {
     for (L_i = 0 ; L_i < L_retrieveIds->m_nb_ids ; L_i++) {
-      L_value_id = (P_rcvCtxt.m_msg)->get_field_value(L_retrieveIds->m_id_table[L_i],
+      L_value_id = (P_rcvCtxt.m_msg)->get_field_value(L_retrieveIds->m_id_table[L_i], 1,
                                                       &P_rcvCtxt,
                                                       -1,
                                                       -1) ;

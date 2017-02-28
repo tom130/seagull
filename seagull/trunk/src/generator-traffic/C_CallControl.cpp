@@ -118,7 +118,7 @@ void C_CallControl::log_search_session_from_scen(int P_channel_id) {
 
 void C_CallControlClient::log_search_session_from_scen(int P_channel_id) {
   GEN_LOG_EVENT (LOG_LEVEL_TRAFFIC_ERR, 
-                 "Value of session-id defiened in scenario is incorrect or not found for channel["
+                 "Value of session-id defined in scenario is incorrect or not found for channel["
                  << P_channel_id
                  << "]");
   
@@ -392,7 +392,7 @@ void C_CallControl::messageReceivedControl () {
       // search for scenario
       GEN_DEBUG(1, "C_CallControl::messageReceivedControl() L_pCallContext == NULL");
 
-      if (m_accept_new_call == true) {
+      if (true) { //DWR fix
 	GEN_DEBUG(1, "C_CallControl::messageReceivedControl()  m_accept_new_call == true");
 	L_scenario = m_scenario_control -> find_scenario (&L_rcvCtxt);
 	if (L_scenario != NULL) { 
@@ -415,7 +415,8 @@ void C_CallControl::messageReceivedControl () {
 	    // no more call context available
 	    // => just discard the message
 	    // => call refused
-	    GEN_ERROR(1, "No more context available");
+	    //
+		  GEN_ERROR(1, "No more context available");
 	    L_pCallContext = NULL ;
 	    GEN_LOG_EVENT_CONDITIONAL (LOG_LEVEL_TRAFFIC_ERR, 
                                        L_value_id != NULL,
@@ -450,15 +451,18 @@ void C_CallControl::messageReceivedControl () {
 
 	  m_stat -> executeStatAction (C_GeneratorStats::E_FAILED_UNEXPECTED_MSG);
 	}
-      } else {
-	// new call refused
-	// discard message
-	GEN_LOG_EVENT_CONDITIONAL (LOG_LEVEL_TRAFFIC_ERR, 
-		   L_value_id != NULL,
-		   "Refused (new) call with session-id ["
-		   << *L_value_id << "]");
-	m_stat -> executeStatAction (C_GeneratorStats::E_CALL_REFUSED) ;
       }
+      //*****************DWR fix***************
+//      else {
+//	// new call refused
+//	// discard message
+//	GEN_LOG_EVENT_CONDITIONAL (LOG_LEVEL_TRAFFIC_ERR,
+//		   L_value_id != NULL,
+//		   "Refused (new) call with session-id ["
+//		   << *L_value_id << "]");
+//	m_stat -> executeStatAction (C_GeneratorStats::E_CALL_REFUSED) ;
+//      }
+      //*****************DWR fix***************
     } else {
       // scenario in execution for this call
       GEN_DEBUG(1, "C_CallControl::messageReceivedControl() "<<
