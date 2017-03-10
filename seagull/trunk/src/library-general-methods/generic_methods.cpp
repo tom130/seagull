@@ -23,6 +23,9 @@
 #include "string_t.hpp"
 #include "Utils.hpp"
 #include <time.h>
+#include <sstream>
+
+
 
 
 char* external_find_text_value (char *P_buf, char *P_field) {
@@ -94,15 +97,36 @@ int sys_time_secs (T_pValueData  P_msgPart,
   int             L_ret    = 0    ;
 
 
+  time_t current_time;
+  struct tm * time_info;
+  char timeString[7];  // space for "HHMMSS\0"
+  char L_result [15];//5
+
+  time(&current_time);
+  time_info = localtime(&current_time);
+
+  strftime(timeString, sizeof(timeString), "%H%M%S", time_info);
+
 
    T_ArgsStr L_args;
-
-
+   std::ostringstream out;
   (void)args_analysis (P_args, &L_args);
-  P_result->m_type = E_TYPE_SIGNED ;
-  P_result->m_value.m_val_signed = time(NULL) + atol(L_args.m_startoffset);
-  FREE_TABLE(L_args.m_startoffset);
-  return (L_ret);
+  P_result->m_type = E_TYPE_STRING ;
+  out << "Session " << timeString;
+  std::string out2=out.str();
+
+  ALLOC_TABLE(P_result->m_value.m_val_binary.m_value,
+                    unsigned char*,
+                    sizeof(unsigned char),
+					strlen(L_result));
+
+  	  	strncpy(L_result, out2.c_str(), sizeof(L_result));
+
+        P_result->m_value.m_val_binary.m_size = strlen(L_result);
+        memcpy(P_result->m_value.m_val_binary.m_value, L_result, strlen(L_result));
+        return (L_ret);
+
+
 }
 
 int sys_time_unsig_sec (T_pValueData  P_msgPart,
