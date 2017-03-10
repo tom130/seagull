@@ -46,7 +46,7 @@ char* external_find_text_value (char *P_buf, char *P_field) {
 
   L_string  = "([[:blank:]]*" ;
   L_string += P_field ;
-  L_string += "[[:blank:]]*=[[:blank:]]*)([^;]+)";
+  L_string += "[[:blank:]]*=[[:blank:]]*)([^#]+)";
 
   L_status = regcomp (&L_reg_expr,
                       L_string.c_str(),
@@ -71,6 +71,8 @@ char* external_find_text_value (char *P_buf, char *P_field) {
 
 typedef struct args_string {
   char * m_startoffset;
+  char * m_session;
+
 } T_ArgsStr, *T_pArgsStr ;
 
 static const T_ArgsStr Args_Str_init = {
@@ -85,8 +87,14 @@ int args_analysis (T_pValueData  P_args, T_pArgsStr P_result) {
   *P_result = Args_Str_init ;
   P_result->m_startoffset = external_find_text_value((char*)P_args->m_value.m_val_binary.m_value,
                                              (char*)"startoffset")  ;
+  P_result->m_session = external_find_text_value((char*)P_args->m_value.m_val_binary.m_value,
+                                               (char*)"session")  ;
+
   if (P_result->m_startoffset == NULL)
   P_result->m_startoffset = (char *)"0";
+
+  if (P_result->m_session == NULL)
+  P_result->m_session = (char *)"0";
   return (L_ret);
 }
 
@@ -97,10 +105,28 @@ int sys_time_secs (T_pValueData  P_msgPart,
   int             L_ret    = 0    ;
 
 
+   T_ArgsStr L_args;
+  (void)args_analysis (P_args, &L_args);
+  P_result->m_type = E_TYPE_SIGNED ;
+  P_result->m_value.m_val_signed = time(NULL) + atol(L_args.m_startoffset);
+
+   FREE_TABLE(L_args.m_startoffset);
+   return (L_ret);
+
+
+
+}
+
+int session_id (T_pValueData  P_msgPart,
+                   T_pValueData  P_args,
+                   T_pValueData  P_result) {
+
+  int             L_ret    = 0    ;
+
   time_t current_time;
   struct tm * time_info;
   char timeString[7];  // space for "HHMMSS\0"
-  char L_result [15];//5
+  char L_result [90];
 
   time(&current_time);
   time_info = localtime(&current_time);
@@ -112,9 +138,8 @@ int sys_time_secs (T_pValueData  P_msgPart,
    std::ostringstream out;
   (void)args_analysis (P_args, &L_args);
   P_result->m_type = E_TYPE_STRING ;
-  out << "Session " << timeString;
+  out << L_args.m_session << timeString;
   std::string out2=out.str();
-
   ALLOC_TABLE(P_result->m_value.m_val_binary.m_value,
                     unsigned char*,
                     sizeof(unsigned char),
@@ -124,10 +149,11 @@ int sys_time_secs (T_pValueData  P_msgPart,
 
         P_result->m_value.m_val_binary.m_size = strlen(L_result);
         memcpy(P_result->m_value.m_val_binary.m_value, L_result, strlen(L_result));
+        FREE_TABLE(L_args.m_session);
         return (L_ret);
 
-
 }
+
 
 int sys_time_unsig_sec (T_pValueData  P_msgPart,
                    T_pValueData  P_args,
