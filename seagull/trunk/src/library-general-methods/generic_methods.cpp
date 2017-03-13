@@ -46,7 +46,7 @@ char* external_find_text_value (char *P_buf, char *P_field) {
 
   L_string  = "([[:blank:]]*" ;
   L_string += P_field ;
-  L_string += "[[:blank:]]*=[[:blank:]]*)([^#]+)";
+  L_string += "[[:blank:]]*=[[:blank:]]*)([ *$]+)";
 
   L_status = regcomp (&L_reg_expr,
                       L_string.c_str(),
@@ -120,32 +120,51 @@ int sys_time_secs (T_pValueData  P_msgPart,
 int session_id (T_pValueData  P_msgPart,
                    T_pValueData  P_args,
                    T_pValueData  P_result) {
+/*
+ Input
+ ------------
+ session=string_session
+
+ Returns
+ ------------
+ string_session+time(HHMMSS)+rand()
+*/
+
 
   int             L_ret    = 0    ;
 
   time_t current_time;
   struct tm * time_info;
   char timeString[7];  // space for "HHMMSS\0"
-  char L_result [90];
-
+  char L_result [150];
+  int random;
   time(&current_time);
   time_info = localtime(&current_time);
+  std::ostringstream out;
+  std::ostringstream out_rand;
 
+  //Time part
   strftime(timeString, sizeof(timeString), "%H%M%S", time_info);
-
+  srand (time(NULL));
+  random = rand() % 1000 + 1;
+  //String conversion
+  out_rand << random;
+  std::string rand_str=out_rand.str();
 
    T_ArgsStr L_args;
-   std::ostringstream out;
   (void)args_analysis (P_args, &L_args);
+  //returning string
   P_result->m_type = E_TYPE_STRING ;
-  out << L_args.m_session << timeString;
+
+  // Return part
+  out << L_args.m_session << timeString << rand_str ;
   std::string out2=out.str();
   ALLOC_TABLE(P_result->m_value.m_val_binary.m_value,
                     unsigned char*,
                     sizeof(unsigned char),
-					strlen(L_result));
+                                        strlen(L_result));
 
-  	  	strncpy(L_result, out2.c_str(), sizeof(L_result));
+                strncpy(L_result, out2.c_str(), sizeof(L_result));
 
         P_result->m_value.m_val_binary.m_size = strlen(L_result);
         memcpy(P_result->m_value.m_val_binary.m_value, L_result, strlen(L_result));
@@ -153,6 +172,7 @@ int session_id (T_pValueData  P_msgPart,
         return (L_ret);
 
 }
+
 
 
 int sys_time_unsig_sec (T_pValueData  P_msgPart,
