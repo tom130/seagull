@@ -24,6 +24,7 @@
 #include "Utils.hpp"
 #include <time.h>
 #include <sstream>
+#include <stdlib.h>
 
 
 
@@ -46,7 +47,7 @@ char* external_find_text_value (char *P_buf, char *P_field) {
 
   L_string  = "([[:blank:]]*" ;
   L_string += P_field ;
-  L_string += "[[:blank:]]*=[[:blank:]]*)([ *$]+)";
+  L_string += "[[:blank:]]*=[[:blank:]]*)([^ *$]+)";
 
   L_status = regcomp (&L_reg_expr,
                       L_string.c_str(),
@@ -136,7 +137,7 @@ int session_id (T_pValueData  P_msgPart,
   time_t current_time;
   struct tm * time_info;
   char timeString[7];  // space for "HHMMSS\0"
-  char L_result [150];
+  char L_result [200];
   int random;
   time(&current_time);
   time_info = localtime(&current_time);
@@ -145,8 +146,9 @@ int session_id (T_pValueData  P_msgPart,
 
   //Time part
   strftime(timeString, sizeof(timeString), "%H%M%S", time_info);
+  //Rand part
   srand (time(NULL));
-  random = rand() % 1000 + 1;
+  random = rand() % 100 + 1;
   //String conversion
   out_rand << random;
   std::string rand_str=out_rand.str();
@@ -172,8 +174,6 @@ int session_id (T_pValueData  P_msgPart,
         return (L_ret);
 
 }
-
-
 
 int sys_time_unsig_sec (T_pValueData  P_msgPart,
                    T_pValueData  P_args,
